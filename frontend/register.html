@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帳號登記 - BBingV</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <h1 class="logo"><a href="index.html">BBingV</a></h1>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="nav-link">首頁</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <section class="form-section">
+            <div class="form-container">
+                <h2>帳號登記</h2>
+                <p class="form-subtitle">建立你的創作者檔案並連結你的社群帳號</p>
+
+                <form id="registerForm" class="form">
+                    <!-- Personal Info -->
+                    <div class="form-group">
+                        <label for="name">姓名 *</label>
+                        <input type="text" id="name" name="name" placeholder="輸入你的名字" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">電子郵件 *</label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                    </div>
+
+                    <!-- Platform Accounts -->
+                    <h3 class="section-title">社群帳號連結</h3>
+
+                    <!-- Threads -->
+                    <div class="platform-group">
+                        <div class="platform-header">
+                            <span class="platform-icon">🧵</span>
+                            <h4>Threads</h4>
+                        </div>
+                        <div class="form-group">
+                            <label for="threads-username">帳號名稱</label>
+                            <input type="text" id="threads-username" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label for="threads-url">帳號連結</label>
+                            <input type="url" id="threads-url" placeholder="https://threads.net/@username">
+                        </div>
+                    </div>
+
+                    <!-- Instagram -->
+                    <div class="platform-group">
+                        <div class="platform-header">
+                            <span class="platform-icon">📷</span>
+                            <h4>Instagram</h4>
+                        </div>
+                        <div class="form-group">
+                            <label for="instagram-username">帳號名稱</label>
+                            <input type="text" id="instagram-username" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label for="instagram-url">帳號連結</label>
+                            <input type="url" id="instagram-url" placeholder="https://instagram.com/username">
+                        </div>
+                    </div>
+
+                    <!-- Dcard -->
+                    <div class="platform-group">
+                        <div class="platform-header">
+                            <span class="platform-icon">💬</span>
+                            <h4>Dcard</h4>
+                        </div>
+                        <div class="form-group">
+                            <label for="dcard-username">帳號名稱</label>
+                            <input type="text" id="dcard-username" placeholder="帳號名稱">
+                        </div>
+                        <div class="form-group">
+                            <label for="dcard-url">帳號連結</label>
+                            <input type="url" id="dcard-url" placeholder="https://dcard.tw/profiles/username">
+                        </div>
+                    </div>
+
+                    <!-- Bio -->
+                    <div class="form-group">
+                        <label for="bio">自我介紹</label>
+                        <textarea id="bio" name="bio" placeholder="簡單介紹你自己和你的創作風格" rows="4"></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-block">完成登記</button>
+                </form>
+
+                <div class="form-note">
+                    <p>✓ 你的資訊已加密保護</p>
+                    <p>✓ 我們不會在未經許可的情況下分享你的帳號</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 BBingV Cross-Promo System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                bio: document.getElementById('bio').value,
+                accounts: [
+                    {
+                        platform: 'threads',
+                        username: document.getElementById('threads-username').value,
+                        url: document.getElementById('threads-url').value
+                    },
+                    {
+                        platform: 'instagram',
+                        username: document.getElementById('instagram-username').value,
+                        url: document.getElementById('instagram-url').value
+                    },
+                    {
+                        platform: 'dcard',
+                        username: document.getElementById('dcard-username').value,
+                        url: document.getElementById('dcard-url').value
+                    }
+                ]
+            };
+
+            try {
+                const response = await fetch('/api/creators/register-accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('登記成功！');
+                    window.location.href = 'index.html';
+                } else {
+                    alert('登記失敗，請重試');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('發生錯誤，請重試');
+            }
+        });
+    </script>
+</body>
+</html>

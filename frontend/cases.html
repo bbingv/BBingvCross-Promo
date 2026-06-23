@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報名案件 - BBingV</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <h1 class="logo"><a href="index.html">BBingV</a></h1>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="nav-link">首頁</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <section class="cases-section">
+            <div class="cases-header">
+                <h2>可合作案件</h2>
+                <div class="filter-bar">
+                    <select id="platformFilter" class="filter-select">
+                        <option value="">全部平台</option>
+                        <option value="threads">Threads</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="dcard">Dcard</option>
+                    </select>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="open">進行中</option>
+                        <option value="all">全部</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="casesList" class="cases-grid">
+                <!-- Cases will be loaded here -->
+                <div class="loading">正在加載案件...</div>
+            </div>
+        </section>
+
+        <!-- Modal for Case Details -->
+        <div id="caseModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="caseDetails"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="applyBtn">報名此案件</button>
+                    <button class="btn btn-secondary" id="closeModalBtn">關閉</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 BBingV Cross-Promo System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let allCases = [];
+        let selectedCaseId = null;
+
+        // Load cases
+        async function loadCases() {
+            try {
+                const response = await fetch('/api/cases');
+                const data = await response.json();
+                allCases = data.cases || [];
+                renderCases(allCases);
+            } catch (error) {
+                console.error('Error loading cases:', error);
+                document.getElementById('casesList').innerHTML = '<p>無法加載案件</p>';
+            }
+        }
+
+        function renderCases(cases) {
+            const casesList = document.getElementById('casesList');
+            if (cases.length === 0) {
+                casesList.innerHTML = '<p class="no-data">暫無案件</p>';
+                return;
+            }
+
+            casesList.innerHTML = cases.map(caseData => `
+                <div class="case-card" onclick="openCaseModal('${caseData.id}')">
+                    <h3>${caseData.title}</h3>
+                    <p class="case-description">${caseData.description}</p>
+                    <div class="case-meta">
+                        <span class="platform-badge">${caseData.platforms.join(', ')}</span>
+                        <span class="deadline">截止: ${new Date(caseData.deadline).toLocaleDateString('zh-TW')}</span>
+                    </div>
+                    <div class="case-footer">
+                        <span class="compensation">💰 ${caseData.compensation}</span>
+                        <span class="applicants">${caseData.applicants.length} 人報名</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openCaseModal(caseId) {
+            selectedCaseId = caseId;
+            const caseData = allCases.find(c => c.id === caseId);
+            const detailsDiv = document.getElementById('caseDetails');
+            
+            detailsDiv.innerHTML = `
+                <h3>${caseData.title}</h3>
+                <p>${caseData.description}</p>
+                <div class="detail-info">
+                    <p><strong>平台:</strong> ${caseData.platforms.join(', ')}</p>
+                    <p><strong>截止日期:</strong> ${new Date(caseData.deadline).toLocaleDateString('zh-TW')}</p>
+                    <p><strong>報酬:</strong> ${caseData.compensation}</p>
+                    <p><strong>已報名:</strong> ${caseData.applicants.length} 人</p>
+                </div>
+            `;
+            
+            document.getElementById('caseModal').style.display = 'block';
+        }
+
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('caseModal').style.display = 'none';
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            document.getElementById('caseModal').style.display = 'none';
+        });
+
+        document.getElementById('applyBtn').addEventListener('click', async () => {
+            const creatorId = localStorage.getItem('creatorId') || 'creator_' + Date.now();
+            try {
+                const response = await fetch(`/api/cases/${selectedCaseId}/apply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        creatorId,
+                        creatorName: localStorage.getItem('creatorName') || 'Anonymous Creator',
+                        email: localStorage.getItem('creatorEmail') || 'unknown@email.com'
+                    })
+                });
+
+                if (response.ok) {
+                    alert('報名成功！');
+                    document.getElementById('caseModal').style.display = 'none';
+                    loadCases();
+                } else {
+                    alert('報名失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('發生錯誤');
+            }
+        });
+
+        // Filter cases
+        document.getElementById('platformFilter').addEventListener('change', filterCases);
+        document.getElementById('statusFilter').addEventListener('change', filterCases);
+
+        function filterCases() {
+            const platformFilter = document.getElementById('platformFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            let filtered = allCases;
+
+            if (platformFilter) {
+                filtered = filtered.filter(c => c.platforms.includes(platformFilter));
+            }
+
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(c => c.status === statusFilter);
+            }
+
+            renderCases(filtered);
+        }
+
+        // Load cases on page load
+        loadCases();
+    </script>
+</body>
+</html>

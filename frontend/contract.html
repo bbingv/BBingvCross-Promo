@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合約簽署 - BBingV</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <h1 class="logo"><a href="index.html">BBingV</a></h1>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="nav-link">首頁</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <section class="contract-section">
+            <h2>合約簽署</h2>
+
+            <!-- Contracts List -->
+            <div id="contractsList" class="contracts-grid">
+                <!-- Contracts will be loaded here -->
+                <div class="loading">正在加載合約...</div>
+            </div>
+        </section>
+
+        <!-- Signature Modal -->
+        <div id="signatureModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>簽署合約</h3>
+                
+                <div class="contract-preview" id="contractPreview">
+                    <!-- Contract content will be loaded here -->
+                </div>
+
+                <div class="signature-section">
+                    <label>你的簽名:</label>
+                    <canvas id="signaturePad" width="400" height="150" style="border: 1px solid #ddd; cursor: crosshair; display: block; margin: 20px 0;"></canvas>
+                    <div class="signature-buttons">
+                        <button class="btn btn-secondary" id="clearSignature">清除簽名</button>
+                        <button class="btn btn-secondary" id="uploadSignature">上傳簽名圖片</button>
+                        <input type="file" id="signatureUpload" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="agreeCheckbox"> 我同意上述合約條款
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="submitSignature">提交簽名</button>
+                    <button class="btn btn-secondary" id="closeSignatureModal">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 BBingV Cross-Promo System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let canvas = document.getElementById('signaturePad');
+        let ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let selectedContractId = null;
+
+        // Canvas drawing
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        // Clear signature
+        document.getElementById('clearSignature').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Load contracts
+        async function loadContracts() {
+            try {
+                const response = await fetch('/api/contracts');
+                const data = await response.json();
+                renderContracts(data.contracts || []);
+            } catch (error) {
+                console.error('Error loading contracts:', error);
+                document.getElementById('contractsList').innerHTML = '<p>無法加載合約</p>';
+            }
+        }
+
+        function renderContracts(contracts) {
+            const contractsList = document.getElementById('contractsList');
+            if (contracts.length === 0) {
+                contractsList.innerHTML = '<p class="no-data">暫無合約待簽署</p>';
+                return;
+            }
+
+            contractsList.innerHTML = contracts.map(contract => `
+                <div class="contract-card">
+                    <h3>${contract.title}</h3>
+                    <p>${contract.content.substring(0, 100)}...</p>
+                    <p class="upload-date">上傳時間: ${new Date(contract.uploadedAt).toLocaleDateString('zh-TW')}</p>
+                    <button class="btn btn-primary" onclick="openSignatureModal('${contract.id}')">簽署合約</button>
+                </div>
+            `).join('');
+        }
+
+        function openSignatureModal(contractId) {
+            selectedContractId = contractId;
+            document.getElementById('signatureModal').style.display = 'block';
+            // Load contract preview
+            // This would fetch contract details and display in contractPreview
+        }
+
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('signatureModal').style.display = 'none';
+        });
+
+        document.getElementById('closeSignatureModal').addEventListener('click', () => {
+            document.getElementById('signatureModal').style.display = 'none';
+        });
+
+        document.getElementById('submitSignature').addEventListener('click', async () => {
+            if (!document.getElementById('agreeCheckbox').checked) {
+                alert('請勾選同意合約條款');
+                return;
+            }
+
+            const signatureData = canvas.toDataURL();
+            const creatorId = localStorage.getItem('creatorId') || 'creator_1';
+
+            try {
+                const response = await fetch(`/api/contracts/${selectedContractId}/sign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        creatorId,
+                        creatorName: localStorage.getItem('creatorName') || 'Creator',
+                        signatureData
+                    })
+                });
+
+                if (response.ok) {
+                    alert('簽署成功！');
+                    document.getElementById('signatureModal').style.display = 'none';
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    loadContracts();
+                } else {
+                    alert('簽署失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('發生錯誤');
+            }
+        });
+
+        loadContracts();
+    </script>
+</body>
+</html>

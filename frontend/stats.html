@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>篇數統計 - BBingV</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <h1 class="logo"><a href="index.html">BBingV</a></h1>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="nav-link">首頁</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <section class="stats-section">
+            <h2>篇數統計</h2>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>已完成案件</h3>
+                    <p class="stat-number" id="completedCases">0</p>
+                    <p class="stat-label">篇</p>
+                </div>
+                <div class="stat-card">
+                    <h3>進行中案件</h3>
+                    <p class="stat-number" id="inProgressCases">0</p>
+                    <p class="stat-label">篇</p>
+                </div>
+                <div class="stat-card">
+                    <h3>已報名案件</h3>
+                    <p class="stat-number" id="appliedCases">0</p>
+                    <p class="stat-label">篇</p>
+                </div>
+                <div class="stat-card">
+                    <h3>總報酬</h3>
+                    <p class="stat-number" id="totalCompensation">0</p>
+                    <p class="stat-label">元</p>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-section">
+                <div class="chart-container">
+                    <h3>案件狀態分布</h3>
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>平台貢獻度</h3>
+                    <canvas id="platformChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Details Table -->
+            <div class="details-section">
+                <h3>案件明細</h3>
+                <table id="detailsTable" class="details-table">
+                    <thead>
+                        <tr>
+                            <th>案件名稱</th>
+                            <th>平台</th>
+                            <th>狀態</th>
+                            <th>報酬</th>
+                            <th>完成日期</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="5" class="no-data">無案件資料</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 BBingV Cross-Promo System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        async function loadStats() {
+            try {
+                const creatorId = localStorage.getItem('creatorId') || 'creator_1';
+                const response = await fetch(`/api/stats/creator/${creatorId}`);
+                const data = await response.json();
+                const stats = data.stats;
+
+                // Update stat cards
+                document.getElementById('completedCases').textContent = stats.totalCasesCompleted;
+                document.getElementById('inProgressCases').textContent = stats.totalCasesInProgress;
+                document.getElementById('appliedCases').textContent = stats.totalCasesApplied;
+                document.getElementById('totalCompensation').textContent = stats.totalCompensation.toLocaleString();
+
+                // Status Chart
+                const statusCtx = document.getElementById('statusChart').getContext('2d');
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['已完成', '進行中', '已報名'],
+                        datasets: [{
+                            data: [stats.totalCasesCompleted, stats.totalCasesInProgress, stats.totalCasesApplied],
+                            backgroundColor: ['#4CAF50', '#2196F3', '#FFC107']
+                        }]
+                    }
+                });
+
+                // Platform Chart
+                const platformCtx = document.getElementById('platformChart').getContext('2d');
+                new Chart(platformCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Threads', 'Instagram', 'Dcard'],
+                        datasets: [{
+                            label: '貼文數',
+                            data: [
+                                stats.accounts.threads.posts,
+                                stats.accounts.instagram.posts,
+                                stats.accounts.dcard.posts
+                            ],
+                            backgroundColor: ['#000', '#E1306C', '#FF6B6B']
+                        }]
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>
